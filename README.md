@@ -6,7 +6,7 @@ A Windows tray utility that reproduces FSX's "mouse as yoke" feature for **Micro
 
 No .NET install, no MSFS SDK, no build step - just the app.
 
-1. Grab `MouseYoke.exe`, `Microsoft.FlightSimulator.SimConnect.dll`, and `SimConnect.dll` from the [Releases page](../../releases) (or build them yourself with `publish.ps1` - see below), and keep all three files together in one folder.
+1. Download `MouseYoke-vX.Y.Z-win-x64.zip` from the [Releases page](https://github.com/seikomogo/FSYoke/releases/latest) and extract it (or build it yourself with `publish.ps1` - see below). Keep `MouseYoke.exe`, `Microsoft.FlightSimulator.SimConnect.dll`, and `SimConnect.dll` together in the same folder.
 2. Double-click `MouseYoke.exe`. Look for the joystick icon in your system tray (it may be tucked under the little "^" overflow arrow the first time).
 3. Launch MSFS 2024, get into a flight, press `Ctrl+Y`.
 
