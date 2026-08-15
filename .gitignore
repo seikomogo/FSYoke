@@ -1,0 +1,9 @@
+## .NET / Visual Studio build artifacts
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+## Local runtime settings (this app also stores real settings under %AppData%\MouseYoke)
+*.userprefs
