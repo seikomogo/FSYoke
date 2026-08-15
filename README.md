@@ -23,7 +23,7 @@ Right-click the tray icon any time for **Settings** (hotkey, square size, sensit
 ## Good to know
 
 - Rudder and throttle aren't included. MSFS's own scroll-to-zoom made a scroll-wheel throttle unworkable, and FSX's original mouse yoke didn't have rudder either.
-- Turning the square off doesn't snap the controls back to neutral — it holds your last position, the same way letting go of a physical yoke would. Reactivate to re-center.
+- Every time you activate the yoke, it automatically centers your cursor and resets ailerons/elevator to neutral, so you always start from a clean, predictable state.
 - Works with the default aircraft fleet and the great majority of payware addons without any extra setup.
 
 ## Troubleshooting
