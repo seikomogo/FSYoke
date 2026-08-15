@@ -2,6 +2,16 @@
 
 A Windows tray utility that reproduces FSX's "mouse as yoke" feature for **Microsoft Flight Simulator 2024**. Press a hotkey (default `Ctrl+Y`) to pop up a small transparent square on your screen; move the mouse inside it to fly ailerons/elevator.
 
+## Download & run
+
+No .NET install, no MSFS SDK, no build step - just the app.
+
+1. Grab `MouseYoke.exe`, `Microsoft.FlightSimulator.SimConnect.dll`, and `SimConnect.dll` from the [Releases page](../../releases) (or build them yourself with `publish.ps1` - see below), and keep all three files together in one folder.
+2. Double-click `MouseYoke.exe`. Look for the joystick icon in your system tray (it may be tucked under the little "^" overflow arrow the first time).
+3. Launch MSFS 2024, get into a flight, press `Ctrl+Y`.
+
+That's it - jump to [Usage](#usage) below for the controls. `MouseYoke.exe` bundles the full .NET runtime, so it runs standalone; the two SimConnect DLLs have to stay next to it (they can't be embedded in the exe - see [Building from source](#building-from-source) for why).
+
 ## How it works
 
 - **Hotkey** (default `Ctrl+Y`, remappable in Settings) toggles a small transparent, click-through square on screen (160px by default, resizable in Settings). Activating it warps your cursor to dead center of the square, so control always starts from neutral instead of jerking to wherever the mouse happened to be.
@@ -12,36 +22,6 @@ A Windows tray utility that reproduces FSX's "mouse as yoke" feature for **Micro
 
 Turning the square off does **not** snap the controls back to neutral — it leaves ailerons/elevator at their last commanded position, exactly like releasing a physical control axis would. Center your mouse in the square before deactivating if you want a neutral handoff (or just reactivate, since that re-centers automatically).
 
-## Requirements
-
-- Windows 10/11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Microsoft Flight Simulator 2024 (Steam or Microsoft Store/Xbox app — both work, see the Store-specific note below)
-- The free **MSFS 2024 SDK**. Unlike most SDKs, it isn't a standalone web download — it ships from inside the sim itself:
-  1. In MSFS, go to **Settings > General > Developer Tools** (or **Advanced Options**, wording varies by build) and switch **Developer Mode** on.
-  2. Restart/return to the sim — a **DevMode** menu bar appears across the top.
-  3. Open **Help > SDK Installer** — this downloads an `.msi`. Run it; it installs to `C:\MSFS 2024 SDK\` by default and sets an `MSFS_SDK` environment variable that this project's `.csproj` uses to locate `SimConnect.dll`.
-- Visual Studio 2022 (recommended) or just the `dotnet` CLI.
-
-## Build
-
-```bash
-dotnet restore
-dotnet build MouseYoke.sln -c Release
-```
-
-If the build fails to find `Microsoft.FlightSimulator.SimConnect`, confirm the `MSFS_SDK` environment variable is set (reopen your terminal/IDE after installing the SDK) and points at a folder containing `SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll`. If your SDK version lays files out differently, edit the two `HintPath`/`Include` paths in `MouseYoke/MouseYoke.csproj` directly.
-
-## Run
-
-```bash
-dotnet run --project MouseYoke -c Release
-```
-
-Or run the built `MouseYoke.exe` from `MouseYoke\bin\x64\Release\net8.0-windows\`. The app has no main window — look for its icon in the system tray. Right-click it for **Settings** (hotkey, square size, deadzone, response curve, invert axes) and **Exit**.
-
-You can launch MouseYoke before or after MSFS — it retries the SimConnect connection every 5 seconds in the background and recovers automatically if the sim restarts.
-
 ## Usage
 
 1. Launch MSFS 2024 and get into a flight.
@@ -49,6 +29,8 @@ You can launch MouseYoke before or after MSFS — it retries the SimConnect conn
 3. Press `Ctrl+Y` (or your configured hotkey) — a small transparent square appears on your primary monitor, and your cursor snaps to its center.
 4. Move the mouse inside the square to control ailerons/elevator (watch the green dot track your position).
 5. Press the hotkey again to hide the square and get your mouse back for clicking MSFS's own UI/cockpit.
+
+Right-click the tray icon for **Settings** (hotkey, square size, deadzone, response curve, invert axes) and **Exit**. You can launch MouseYoke before or after MSFS - it retries the SimConnect connection every 5 seconds in the background and recovers automatically if the sim restarts.
 
 ## Compatibility notes
 
@@ -65,10 +47,40 @@ You can launch MouseYoke before or after MSFS — it retries the SimConnect conn
 - **Multiple monitors**: the square always centers on your *primary* display by default; adjust its position via the settings ratios if you'd rather it appear elsewhere.
 - **Using a physical yoke/joystick at the same time**: MouseYoke transmits at the highest SimConnect notification priority (matching how a real input device would compete for the axis), so simultaneous physical and mouse input on the same axis will fight each other, same as plugging in two physical controllers mapped to the same axis.
 
+## Building from source
+
+Only needed if you want to modify the code or produce your own distributable - none of this is required just to run the app (see [Download & run](#download--run) above).
+
+**Requirements:**
+- Windows 10/11
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Microsoft Flight Simulator 2024 (Steam or Microsoft Store/Xbox app — both work, see the Store-specific compatibility note above)
+- The free **MSFS 2024 SDK**. Unlike most SDKs, it isn't a standalone web download — it ships from inside the sim itself:
+  1. In MSFS, go to **Settings > General > Developer Tools** (or **Advanced Options**, wording varies by build) and switch **Developer Mode** on.
+  2. Restart/return to the sim — a **DevMode** menu bar appears across the top.
+  3. Open **Help > SDK Installer** — this downloads an `.msi`. Run it; it installs to `C:\MSFS 2024 SDK\` by default and sets an `MSFS_SDK` environment variable that this project's `.csproj` uses to locate `SimConnect.dll`. This is a **build-time only** requirement — it's never needed by someone just running the finished app.
+- Visual Studio 2022 (recommended) or just the `dotnet` CLI.
+
+**Dev build/run** (fast inner loop, produces a normal multi-file output under `MouseYoke\bin\...`):
+```bash
+dotnet restore
+dotnet build MouseYoke.sln -c Release
+dotnet run --project MouseYoke -c Release
+```
+If the build fails to find `Microsoft.FlightSimulator.SimConnect`, confirm the `MSFS_SDK` environment variable is set (reopen your terminal/IDE after installing the SDK) and points at a folder containing `SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll`. If your SDK version lays files out differently, edit the two `HintPath`/`Include` paths in `MouseYoke/MouseYoke.csproj` directly.
+
+**Producing the distributable** (what ends up on the Releases page):
+```powershell
+.\publish.ps1
+```
+This runs `dotnet publish` as a self-contained, single-file, win-x64 build and drops the result in `dist\`. It's not a *literal* single file: `Microsoft.FlightSimulator.SimConnect.dll` is a mixed-mode (C++/CLI) assembly, and .NET's single-file publish feature cannot embed mixed-mode assemblies at all — it crashes on startup with a `BadImageFormatException` if forced. The `.csproj` explicitly excludes it (and the native `SimConnect.dll` it wraps) from the bundle via a `ResolvedFileToPublish` target, so they ship as two small loose files next to `MouseYoke.exe` instead. Still just 3 files total, versus the 10+ files (plus a separate .NET runtime install) a normal framework-dependent build would need.
+
 ## Project layout
 
 ```
 MouseYoke/
+  Assets/
+    app.ico                     Joystick tray/app icon (multi-res: 16/32/48/256px)
   App.xaml(.cs)                 App startup/shutdown, wires everything together
   OverlayWindow.xaml(.cs)       The transparent click-through square
   SettingsWindow.xaml(.cs)      Settings UI
@@ -83,8 +95,10 @@ MouseYoke/
   Config/
     AppSettings.cs               Settings POCO
     SettingsService.cs           JSON persistence to %AppData%\MouseYoke\settings.json
+publish.ps1                      Builds the distributable, see "Building from source" above
+NOTICE.md                        Third-party attribution for the redistributed SimConnect DLLs
 ```
 
 ## A note on testing
 
-This has been built and tested live against MSFS 2024. Aileron and elevator direction were confirmed correct by the user flying with it. The overlay rendering, live indicator dot, and cursor auto-centering on activation have all been verified end-to-end by launching the real exe, injecting input, and screenshotting the result. Throttle-via-scroll was implemented, tested, found to permanently conflict with MSFS's own zoom (not fixable client-side), and removed rather than shipped half-working.
+This has been built and tested live against MSFS 2024. Aileron and elevator direction were confirmed correct by the user flying with it. The overlay rendering, live indicator dot, and cursor auto-centering on activation have all been verified end-to-end by launching the real exe, injecting input, and screenshotting the result - including the published self-contained `dist\MouseYoke.exe` specifically, not just the dev build. Throttle-via-scroll was implemented, tested, found to permanently conflict with MSFS's own zoom (not fixable client-side), and removed rather than shipped half-working.

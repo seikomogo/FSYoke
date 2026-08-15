@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace MouseYoke;
@@ -21,11 +22,24 @@ public sealed class TrayIconManager : IDisposable
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadAppIcon(),
             Visible = true,
             Text = "MouseYoke - inactive",
             ContextMenuStrip = menu,
         };
+    }
+
+    /// <summary>Pulls the app's own icon back out of the running exe (embedded there via ApplicationIcon at compile time), so there's no separate loose .ico file to ship or lose track of.</summary>
+    private static Icon LoadAppIcon()
+    {
+        var exePath = Assembly.GetExecutingAssembly().Location;
+        if (string.IsNullOrEmpty(exePath))
+        {
+            // Single-file publish reports an empty Location; fall back to the actual process path.
+            exePath = Environment.ProcessPath ?? string.Empty;
+        }
+
+        return Icon.ExtractAssociatedIcon(exePath) ?? SystemIcons.Application;
     }
 
     public void SetActive(bool active)

@@ -5,5 +5,8 @@ obj/
 *.user
 *.suo
 
+## publish.ps1 output - large self-contained build, not source, produced on demand
+dist/
+
 ## Local runtime settings (this app also stores real settings under %AppData%\MouseYoke)
 *.userprefs
