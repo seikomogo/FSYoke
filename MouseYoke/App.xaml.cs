@@ -21,7 +21,6 @@ public partial class App : Application
 
     private bool _isActive;
     private int _squareLeft, _squareTop;
-    private int _throttleValue;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -32,12 +31,10 @@ public partial class App : Application
         _overlay = new OverlayWindow();
 
         _simConnect = new SimConnectClient();
-        _simConnect.ThrottlePositionReceived += value => _throttleValue = value;
         _simConnect.Start();
 
         _mouseTracker = new MouseTracker();
         _mouseTracker.MouseMoved += OnMouseMoved;
-        _mouseTracker.WheelScrolled = OnWheelScrolled;
         _mouseTracker.Start();
 
         _hotkeyListener = new GlobalHotkeyListener(_settings.ToHotkeyCombo());
@@ -56,9 +53,22 @@ public partial class App : Application
 
         if (_isActive)
         {
-            _simConnect.RequestCurrentThrottle();
             (_squareLeft, _squareTop) = ComputeSquarePosition();
+            int centerX = _squareLeft + _settings.SquareSize / 2;
+            int centerY = _squareTop + _settings.SquareSize / 2;
+
+            // Warp the cursor to dead center so activation always starts from neutral,
+            // instead of jerking the controls to wherever the mouse happened to be.
+            // SetCursorPos doesn't feed the low-level mouse hook (confirmed by testing),
+            // so the neutral axis values and indicator position are set directly here
+            // rather than waiting on a mouse-move event that may never come if the user
+            // doesn't move the mouse right after activating.
+            WindowInterop.WarpCursor(centerX, centerY);
+            _simConnect.SendAxis(ControlEvent.Aileron, 0);
+            _simConnect.SendAxis(ControlEvent.Elevator, 0);
+
             _overlay.ShowAt(_squareLeft, _squareTop, _settings.SquareSize);
+            _overlay.UpdateIndicator(0, 0, _settings.SquareSize);
         }
         else
         {
@@ -88,17 +98,6 @@ public partial class App : Application
 
         var (rawX, rawY) = AxisMapper.RawNormalizedPosition(x, y, _squareLeft, _squareTop, _settings.SquareSize);
         _overlay.UpdateIndicator(rawX, rawY, _settings.SquareSize);
-    }
-
-    /// <summary>Returns true (swallow this notch) only when we actually acted on it, so plain scroll is always left alone for MSFS's own bindings (e.g. FOV zoom) - see MouseTracker's suppression caveat.</summary>
-    private bool OnWheelScrolled(int delta, bool shiftHeld)
-    {
-        if (!_isActive) return false;
-        if (_settings.ThrottleRequiresShift && !shiftHeld) return false;
-
-        _throttleValue = AxisMapper.StepThrottle(_throttleValue, delta, _settings.ThrottleStepPercent);
-        _simConnect.SendAxis(ControlEvent.Throttle, _throttleValue);
-        return true;
     }
 
     private void ShowSettings()

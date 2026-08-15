@@ -26,12 +26,9 @@ public partial class SettingsWindow : Window
         SquareSizeSlider.Value = _settings.SquareSize;
         DeadzoneSlider.Value = _settings.Deadzone;
         CurveSlider.Value = _settings.ResponseCurve;
-        ThrottleStepSlider.Value = _settings.ThrottleStepPercent;
 
         InvertAileronCheck.IsChecked = _settings.InvertAileron;
         InvertElevatorCheck.IsChecked = _settings.InvertElevator;
-
-        ThrottleRequiresShiftCheck.IsChecked = _settings.ThrottleRequiresShift;
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -44,12 +41,9 @@ public partial class SettingsWindow : Window
         _settings.SquareSize = (int)SquareSizeSlider.Value;
         _settings.Deadzone = DeadzoneSlider.Value;
         _settings.ResponseCurve = CurveSlider.Value;
-        _settings.ThrottleStepPercent = (int)ThrottleStepSlider.Value;
 
         _settings.InvertAileron = InvertAileronCheck.IsChecked == true;
         _settings.InvertElevator = InvertElevatorCheck.IsChecked == true;
-
-        _settings.ThrottleRequiresShift = ThrottleRequiresShiftCheck.IsChecked == true;
 
         SettingsService.Save(_settings);
         SettingsSaved?.Invoke(_settings);

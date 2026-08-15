@@ -45,6 +45,9 @@ internal static class WindowInterop
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetCursorPos(int x, int y);
+
     /// <summary>Makes the window pass all mouse/keyboard input through to whatever is beneath it, keeps it off the taskbar/alt-tab, and stops it from stealing focus (and thus MSFS's keyboard/mouse capture) when shown.</summary>
     public static void MakeClickThrough(Window window)
     {
@@ -68,4 +71,7 @@ internal static class WindowInterop
     /// <summary>Primary monitor size in physical pixels. The yoke square is always positioned relative to the primary display.</summary>
     public static (int Width, int Height) GetPrimaryScreenSizePhysicalPixels()
         => (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+
+    /// <summary>Warps the OS cursor to an absolute physical-pixel screen position.</summary>
+    public static void WarpCursor(int x, int y) => SetCursorPos(x, y);
 }

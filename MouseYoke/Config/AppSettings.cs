@@ -26,12 +26,6 @@ public sealed class AppSettings
     public bool InvertAileron { get; set; } = false;
     public bool InvertElevator { get; set; } = false;
 
-    /// <summary>Percent of full idle-to-max throttle travel applied per scroll-wheel notch.</summary>
-    public int ThrottleStepPercent { get; set; } = 5;
-
-    /// <summary>If true, plain scroll is left alone for MSFS's own bindings (e.g. FOV zoom) and only Shift+Scroll drives throttle, avoiding the conflict entirely instead of trying (and mostly failing) to suppress it.</summary>
-    public bool ThrottleRequiresShift { get; set; } = true;
-
     public HotkeyCombo ToHotkeyCombo() => new()
     {
         Control = HotkeyControl,

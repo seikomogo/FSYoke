@@ -10,14 +10,13 @@ public enum ControlEvent
 {
     Aileron,
     Elevator,
-    Throttle,
 }
 
 /// <summary>
 /// Wraps the managed SimConnect SDK: maintains a connection to MSFS, transmits raw axis
-/// input events (the same events a physical joystick/throttle axis would send, which is
-/// the most broadly compatible way to reach default and payware aircraft alike), and
-/// quietly retries in the background if the sim isn't running yet or gets restarted.
+/// input events (the same events a physical joystick axis would send, which is the most
+/// broadly compatible way to reach default and payware aircraft alike), and quietly retries
+/// in the background if the sim isn't running yet or gets restarted.
 /// </summary>
 public sealed class SimConnectClient : IDisposable
 {
@@ -25,14 +24,6 @@ public sealed class SimConnectClient : IDisposable
     private const string AppName = "MouseYoke";
 
     private enum NotificationGroup { Input }
-    private enum RequestId { ThrottlePosition }
-    private enum DefinitionId { ThrottlePosition }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
-    private struct ThrottleData
-    {
-        public double LeverPositionPercent;
-    }
 
     private readonly HwndSource _messageWindow;
     private readonly DispatcherTimer _reconnectTimer;
@@ -41,9 +32,6 @@ public sealed class SimConnectClient : IDisposable
     public bool IsConnected { get; private set; }
     public event Action? Connected;
     public event Action? Disconnected;
-
-    /// <summary>Fires with the sim's actual current throttle lever position (0..16384) in response to RequestCurrentThrottle().</summary>
-    public event Action<int>? ThrottlePositionReceived;
 
     public SimConnectClient()
     {
@@ -82,7 +70,6 @@ public sealed class SimConnectClient : IDisposable
             };
             _simConnect.OnRecvQuit += (_, _) => HandleDisconnect();
             _simConnect.OnRecvException += (_, _) => { /* ignore malformed/unsupported requests, keep the connection alive */ };
-            _simConnect.OnRecvSimobjectData += OnRecvSimobjectData;
 
             foreach (ControlEvent evt in Enum.GetValues<ControlEvent>())
             {
@@ -90,25 +77,12 @@ public sealed class SimConnectClient : IDisposable
                 _simConnect.AddClientEventToNotificationGroup(NotificationGroup.Input, evt, false);
             }
             _simConnect.SetNotificationGroupPriority(NotificationGroup.Input, SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST);
-
-            _simConnect.AddToDataDefinition(
-                DefinitionId.ThrottlePosition, "GENERAL ENG THROTTLE LEVER POSITION:1", "Percent",
-                SIMCONNECT_DATATYPE.FLOAT64, 0, SimConnect.SIMCONNECT_UNUSED);
-            _simConnect.RegisterDataDefineStruct<ThrottleData>(DefinitionId.ThrottlePosition);
         }
         catch (COMException)
         {
             // MSFS isn't running / SimConnect isn't reachable yet - retried on the next timer tick.
             _simConnect = null;
         }
-    }
-
-    private void OnRecvSimobjectData(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA data)
-    {
-        if ((RequestId)data.dwRequestID != RequestId.ThrottlePosition || data.dwData.Length == 0) return;
-
-        var throttle = (ThrottleData)data.dwData[0];
-        ThrottlePositionReceived?.Invoke(AxisMapper.PercentToThrottleAxis(throttle.LeverPositionPercent));
     }
 
     private void HandleDisconnect()
@@ -119,7 +93,7 @@ public sealed class SimConnectClient : IDisposable
         Disconnected?.Invoke();
     }
 
-    /// <summary>Sends a raw axis value (-16384..16384, throttle 0..16384) for the given control.</summary>
+    /// <summary>Sends a raw axis value (-16384..16384) for the given control.</summary>
     public void SendAxis(ControlEvent evt, int value)
     {
         if (!IsConnected || _simConnect is null) return;
@@ -135,28 +109,10 @@ public sealed class SimConnectClient : IDisposable
         }
     }
 
-    /// <summary>Asks the sim for the current throttle lever position; the result arrives via ThrottlePositionReceived. Used to resync before the first scroll notch of a session, avoiding a jarring jump from a stale cached value.</summary>
-    public void RequestCurrentThrottle()
-    {
-        if (!IsConnected || _simConnect is null) return;
-
-        try
-        {
-            _simConnect.RequestDataOnSimObject(
-                RequestId.ThrottlePosition, DefinitionId.ThrottlePosition, 0u,
-                SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0u, 0u, 0u);
-        }
-        catch (COMException)
-        {
-            // Best-effort resync; a stale cached throttle value is a minor annoyance, not fatal.
-        }
-    }
-
     private static string EventName(ControlEvent evt) => evt switch
     {
         ControlEvent.Aileron => "AXIS_AILERONS_SET",
         ControlEvent.Elevator => "AXIS_ELEVATOR_SET",
-        ControlEvent.Throttle => "AXIS_THROTTLE_SET",
         _ => throw new ArgumentOutOfRangeException(nameof(evt)),
     };
 
