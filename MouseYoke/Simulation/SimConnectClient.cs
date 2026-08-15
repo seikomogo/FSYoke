@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.FlightSimulator.SimConnect;
@@ -28,6 +29,8 @@ public sealed class SimConnectClient : IDisposable
     private readonly HwndSource _messageWindow;
     private readonly DispatcherTimer _reconnectTimer;
     private SimConnect? _simConnect;
+    private bool _connecting;
+    private bool _disposed;
 
     public bool IsConnected { get; private set; }
     public event Action? Connected;
@@ -57,32 +60,55 @@ public sealed class SimConnectClient : IDisposable
 
     private void TryConnect()
     {
-        if (IsConnected) return;
+        if (IsConnected || _connecting) return;
+        _connecting = true;
 
-        try
+        // The SimConnect constructor blocks synchronously while it probes for a running sim,
+        // so it's run off the UI thread - otherwise every retry stalls the WH_MOUSE_LL hook
+        // (pumped on this same thread) for the duration of the probe, causing a mouse stutter.
+        Task.Run(() =>
         {
-            _simConnect = new SimConnect(AppName, _messageWindow.Handle, WM_USER_SIMCONNECT, null, 0);
-
-            _simConnect.OnRecvOpen += (_, _) =>
+            SimConnect? simConnect = null;
+            try
             {
-                IsConnected = true;
-                Connected?.Invoke();
-            };
-            _simConnect.OnRecvQuit += (_, _) => HandleDisconnect();
-            _simConnect.OnRecvException += (_, _) => { /* ignore malformed/unsupported requests, keep the connection alive */ };
+                simConnect = new SimConnect(AppName, _messageWindow.Handle, WM_USER_SIMCONNECT, null, 0);
 
-            foreach (ControlEvent evt in Enum.GetValues<ControlEvent>())
-            {
-                _simConnect.MapClientEventToSimEvent(evt, EventName(evt));
-                _simConnect.AddClientEventToNotificationGroup(NotificationGroup.Input, evt, false);
+                foreach (ControlEvent evt in Enum.GetValues<ControlEvent>())
+                {
+                    simConnect.MapClientEventToSimEvent(evt, EventName(evt));
+                    simConnect.AddClientEventToNotificationGroup(NotificationGroup.Input, evt, false);
+                }
+                simConnect.SetNotificationGroupPriority(NotificationGroup.Input, SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST);
             }
-            _simConnect.SetNotificationGroupPriority(NotificationGroup.Input, SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST);
-        }
-        catch (COMException)
+            catch (COMException)
+            {
+                // MSFS isn't running / SimConnect isn't reachable yet - retried on the next timer tick.
+                simConnect?.Dispose();
+                simConnect = null;
+            }
+
+            if (!_disposed) _messageWindow.Dispatcher.Invoke(() => FinishConnect(simConnect));
+            else simConnect?.Dispose();
+        });
+    }
+
+    private void FinishConnect(SimConnect? simConnect)
+    {
+        _connecting = false;
+        if (simConnect is null || _disposed)
         {
-            // MSFS isn't running / SimConnect isn't reachable yet - retried on the next timer tick.
-            _simConnect = null;
+            simConnect?.Dispose();
+            return;
         }
+
+        _simConnect = simConnect;
+        _simConnect.OnRecvOpen += (_, _) =>
+        {
+            IsConnected = true;
+            Connected?.Invoke();
+        };
+        _simConnect.OnRecvQuit += (_, _) => HandleDisconnect();
+        _simConnect.OnRecvException += (_, _) => { /* ignore malformed/unsupported requests, keep the connection alive */ };
     }
 
     private void HandleDisconnect()
@@ -136,6 +162,7 @@ public sealed class SimConnectClient : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
         _reconnectTimer.Stop();
         _simConnect?.Dispose();
         _messageWindow.RemoveHook(WndProc);
