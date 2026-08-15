@@ -17,8 +17,11 @@ Turning the square off does **not** snap the controls back to neutral — it lea
 
 - Windows 10/11
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Microsoft Flight Simulator 2024
-- The free **MSFS 2024 SDK** (installed separately from the sim itself) — get it from [docs.flightsimulator.com](https://docs.flightsimulator.com/msfs2024/html/6_Programming_APIs/SimConnect/SimConnect_SDK.htm). Its installer sets an `MSFS_SDK` environment variable that the project file uses to locate `SimConnect.dll`.
+- Microsoft Flight Simulator 2024 (Steam or Microsoft Store/Xbox app — both work, see the Store-specific note below)
+- The free **MSFS 2024 SDK**. Unlike most SDKs, it isn't a standalone web download — it ships from inside the sim itself:
+  1. In MSFS, go to **Settings > General > Developer Tools** (or **Advanced Options**, wording varies by build) and switch **Developer Mode** on.
+  2. Restart/return to the sim — a **DevMode** menu bar appears across the top.
+  3. Open **Help > SDK Installer** — this downloads an `.msi`. Run it; it installs to `C:\MSFS 2024 SDK\` by default and sets an `MSFS_SDK` environment variable that this project's `.csproj` uses to locate `SimConnect.dll`.
 - Visual Studio 2022 (recommended) or just the `dotnet` CLI.
 
 ## Build
@@ -52,6 +55,14 @@ You can launch MouseYoke before or after MSFS — it retries the SimConnect conn
 
 - **Payware aircraft**: `AXIS_*_SET` events are the most broadly compatible input path SimConnect offers, but a handful of complex addons with fully custom input handling may still respond slightly differently — the same caveat a physical hardware axis would face. This is a known limitation of the SimConnect ecosystem, not something fixable from a client app.
 - **Elevation mismatch**: if MSFS is running as Administrator, SimConnect's local named-pipe connection can fail to reach it from a non-elevated client. If MouseYoke can't connect and MSFS is running elevated, try running MouseYoke as Administrator too.
+- **Microsoft Store/Xbox app install**: MSFS 2024 runs its SimConnect servers (pipe, IPv4, IPv6) the same way regardless of Steam vs. Store packaging, so `MouseYoke` connecting locally should just work. If it doesn't connect at all on a Store install, the fallback is to force a TCP connection instead of the named pipe: create a `SimConnect.cfg` next to `MouseYoke.exe` with
+  ```ini
+  [SimConnect]
+  Protocol=IPv4
+  Address=127.0.0.1
+  Port=500
+  ```
+  (every MSFS 2024 install exposes TCP on port 500 by default). The Store build's own data lives under `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe\LocalCache\` if you need to inspect its `SimConnect.xml` for reference.
 - **Multiple monitors**: the square always centers on your *primary* display by default; adjust its position via the settings ratios if you'd rather it appear elsewhere.
 - **Using a physical yoke/joystick at the same time**: MouseYoke transmits at the highest SimConnect notification priority (matching how a real input device would compete for the axis), so simultaneous physical and mouse input on the same axis will fight each other, same as plugging in two physical controllers mapped to the same axis.
 
@@ -77,4 +88,4 @@ MouseYoke/
 
 ## A note on testing
 
-This machine doesn't have the .NET 8 SDK, the MSFS SDK, or MSFS 2024 itself installed, so it has **not** been compiled or run yet. The SimConnect managed API calls follow the documented signatures and standard community sample patterns, but Microsoft has occasionally made small signature changes between SDK point releases — if `dotnet build` reports a mismatch in `Simulation/SimConnectClient.cs`, cross-check the exact method signature against your installed SDK's IntelliSense/XML docs. Please build it, fly with it, and treat the first session as a shakedown: confirm the square appears where expected, that aileron/elevator/throttle respond correctly (check MSFS's own input indicators), and that toggling off returns full mouse control.
+This machine has MSFS 2024 installed (Microsoft Store/Xbox app build, under `E:\Xbox\Microsoft Flight Simulator 2024`) but is missing the .NET 8 SDK and the MSFS SDK, so this has **not** been compiled or run yet. The SimConnect managed API calls follow the documented signatures and standard community sample patterns, but Microsoft has occasionally made small signature changes between SDK point releases — if `dotnet build` reports a mismatch in `Simulation/SimConnectClient.cs`, cross-check the exact method signature against your installed SDK's IntelliSense/XML docs. Please build it, fly with it, and treat the first session as a shakedown: confirm the square appears where expected, that aileron/elevator/throttle respond correctly (check MSFS's own input indicators), and that toggling off returns full mouse control.
