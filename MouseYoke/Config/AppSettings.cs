@@ -26,8 +26,8 @@ public sealed class AppSettings
     public bool InvertAileron { get; set; } = false;
     public bool InvertElevator { get; set; } = false;
 
-    /// <summary>Percent of full throttle travel applied per scroll-wheel notch.</summary>
-    public int ThrottleStepPercent { get; set; } = 2;
+    /// <summary>Percent of full idle-to-max throttle travel applied per scroll-wheel notch.</summary>
+    public int ThrottleStepPercent { get; set; } = 5;
 
     public HotkeyCombo ToHotkeyCombo() => new()
     {

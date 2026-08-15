@@ -5,10 +5,14 @@ using MouseYoke.Native;
 namespace MouseYoke;
 
 /// <summary>
-/// The transparent yoke square. Created once at startup (hidden) and repositioned/shown or
-/// hidden natively via <see cref="WindowInterop"/> on each hotkey toggle - it never goes
-/// through WPF's own Show()/Hide(), which avoids a visible flicker back to its default
-/// position and keeps it from ever stealing focus from MSFS.
+/// The transparent yoke square. Created once at startup (hidden) and click-through/no-activate
+/// styled immediately, so it never steals focus from MSFS once shown. Positioning still goes
+/// through <see cref="WindowInterop"/> for exact physical-pixel alignment with the mouse hook's
+/// coordinates, but showing/hiding goes through WPF's own Show()/Hide() - a layered
+/// (AllowsTransparency) window only starts actually compositing/rendering its content once WPF's
+/// own Show() pipeline runs, so skipping it (as an earlier version of this file did, to dodge a
+/// one-frame flicker) left the window "visible" at the Win32 level but with nothing ever painted
+/// into it.
 /// </summary>
 public partial class OverlayWindow : Window
 {
@@ -19,7 +23,11 @@ public partial class OverlayWindow : Window
         WindowInterop.MakeClickThrough(this);
     }
 
-    public void ShowAt(int left, int top, int size) => WindowInterop.SetBoundsAndShow(this, left, top, size);
+    public void ShowAt(int left, int top, int size)
+    {
+        Show();
+        WindowInterop.SetBoundsAndShow(this, left, top, size);
+    }
 
-    public void HideOverlay() => WindowInterop.HideWindow(this);
+    public void HideOverlay() => Hide();
 }

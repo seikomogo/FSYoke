@@ -53,6 +53,7 @@ public partial class App : Application
     {
         _isActive = !_isActive;
         _tray.SetActive(_isActive);
+        _mouseTracker.ConsumeWheelInput = _isActive;
 
         if (_isActive)
         {

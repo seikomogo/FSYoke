@@ -6,8 +6,10 @@ namespace MouseYoke.Native;
 /// <summary>
 /// Reports absolute cursor position and scroll-wheel deltas via a low-level mouse hook, so
 /// both keep working regardless of which window currently has focus (MSFS in particular).
-/// The hook never suppresses events (always calls CallNextHookEx), so it is purely additive
-/// - normal mouse/scroll behavior everywhere else on the system is completely unaffected.
+/// Mouse movement is always passed through untouched. Wheel events are passed through too,
+/// UNLESS <see cref="ConsumeWheelInput"/> is set - while the yoke is active, MSFS's own
+/// scroll-to-zoom binding would otherwise fire on every notch alongside the throttle change,
+/// so those notches are swallowed system-wide instead of forwarded.
 /// </summary>
 public sealed class MouseTracker : IDisposable
 {
@@ -56,6 +58,9 @@ public sealed class MouseTracker : IDisposable
     /// <summary>Fires on every global wheel notch; positive = scroll up/away, negative = scroll down/toward, magnitude 120 per notch.</summary>
     public event Action<int>? WheelScrolled;
 
+    /// <summary>When true, wheel notches are consumed (not forwarded to whatever app would normally receive them) after WheelScrolled fires.</summary>
+    public bool ConsumeWheelInput { get; set; }
+
     public MouseTracker()
     {
         _proc = HookCallback;
@@ -92,6 +97,11 @@ public sealed class MouseTracker : IDisposable
             {
                 short delta = (short)((data.mouseData >> 16) & 0xFFFF);
                 WheelScrolled?.Invoke(delta);
+
+                if (ConsumeWheelInput)
+                {
+                    return (IntPtr)1; // swallow: stop this notch from also reaching MSFS's (or anything else's) own scroll handling
+                }
             }
         }
 

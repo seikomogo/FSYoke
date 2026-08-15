@@ -13,8 +13,13 @@ public static class AxisMapper
 {
     public const int SimAxisMin = -16384;
     public const int SimAxisMax = 16384;
-    public const int SimThrottleMin = 0;
+
+    // AXIS_THROTTLE_SET uses the full signed range: -16384 = idle (0%), +16384 = full power (100%).
+    // It is NOT 0..16384 - sending only that half of the range means the sim can only ever see
+    // roughly 50%-100% throttle, which is why throttle used to feel like it "never reached full".
+    public const int SimThrottleMin = -16384;
     public const int SimThrottleMax = 16384;
+    private const int SimThrottleSpan = SimThrottleMax - SimThrottleMin;
 
     public static AxisOutput Map(
         int cursorX, int cursorY,
@@ -27,7 +32,10 @@ public static class AxisMapper
         double centerY = squareTop + halfSize;
 
         double normalizedX = Clamp((cursorX - centerX) / halfSize, -1.0, 1.0);
-        double normalizedY = Clamp((cursorY - centerY) / halfSize, -1.0, 1.0);
+        // Screen Y grows downward, but SimConnect's elevator convention (and every other
+        // flight sim / game's mouse-look) treats "mouse up" as "pitch up" (positive elevator),
+        // so this is inverted relative to raw screen coordinates on purpose.
+        double normalizedY = Clamp((centerY - cursorY) / halfSize, -1.0, 1.0);
 
         double aileron = ApplyDeadzoneAndCurve(normalizedX, deadzone, responseCurve);
         double elevator = ApplyDeadzoneAndCurve(normalizedY, deadzone, responseCurve);
@@ -40,10 +48,14 @@ public static class AxisMapper
             (int)Math.Round(elevator * SimAxisMax));
     }
 
-    /// <summary>Steps the running throttle value by one notch's worth of percent, clamped to the valid range.</summary>
+    /// <summary>Converts an actual throttle lever position (0-100%) into SimConnect's signed axis range.</summary>
+    public static int PercentToThrottleAxis(double percent) =>
+        (int)Math.Round(SimThrottleMin + Clamp(percent, 0, 100) / 100.0 * SimThrottleSpan);
+
+    /// <summary>Steps the running throttle value by one notch's worth of percent of the full idle-to-max range, clamped to valid.</summary>
     public static int StepThrottle(int currentValue, int wheelDelta, int stepPercent)
     {
-        int step = (int)Math.Round(SimThrottleMax * (stepPercent / 100.0));
+        int step = (int)Math.Round(SimThrottleSpan * (stepPercent / 100.0));
         int direction = Math.Sign(wheelDelta);
         return Clamp(currentValue + direction * step, SimThrottleMin, SimThrottleMax);
     }

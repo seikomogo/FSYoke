@@ -108,8 +108,7 @@ public sealed class SimConnectClient : IDisposable
         if ((RequestId)data.dwRequestID != RequestId.ThrottlePosition || data.dwData.Length == 0) return;
 
         var throttle = (ThrottleData)data.dwData[0];
-        int scaled = (int)Math.Round(Math.Clamp(throttle.LeverPositionPercent, 0, 100) / 100.0 * AxisMapper.SimThrottleMax);
-        ThrottlePositionReceived?.Invoke(scaled);
+        ThrottlePositionReceived?.Invoke(AxisMapper.PercentToThrottleAxis(throttle.LeverPositionPercent));
     }
 
     private void HandleDisconnect()

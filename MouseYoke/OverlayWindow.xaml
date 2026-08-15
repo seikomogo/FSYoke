@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MouseYoke Overlay"
         Width="260" Height="260"
+        Left="-10000" Top="-10000"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
