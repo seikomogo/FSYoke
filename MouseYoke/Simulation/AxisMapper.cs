@@ -31,10 +31,10 @@ public static class AxisMapper
         double centerX = squareLeft + halfSize;
         double centerY = squareTop + halfSize;
 
-        double normalizedX = Clamp((cursorX - centerX) / halfSize, -1.0, 1.0);
-        // Screen Y grows downward, but SimConnect's elevator convention (and every other
-        // flight sim / game's mouse-look) treats "mouse up" as "pitch up" (positive elevator),
-        // so this is inverted relative to raw screen coordinates on purpose.
+        // Sign conventions below were fixed empirically against a real MSFS 2024 session,
+        // not just from SimConnect's docs - both axes needed to be flipped relative to raw
+        // screen coordinates to make "mouse right -> bank right" and "mouse up -> nose up" true.
+        double normalizedX = Clamp((centerX - cursorX) / halfSize, -1.0, 1.0);
         double normalizedY = Clamp((centerY - cursorY) / halfSize, -1.0, 1.0);
 
         double aileron = ApplyDeadzoneAndCurve(normalizedX, deadzone, responseCurve);
@@ -51,6 +51,17 @@ public static class AxisMapper
     /// <summary>Converts an actual throttle lever position (0-100%) into SimConnect's signed axis range.</summary>
     public static int PercentToThrottleAxis(double percent) =>
         (int)Math.Round(SimThrottleMin + Clamp(percent, 0, 100) / 100.0 * SimThrottleSpan);
+
+    /// <summary>Raw, unshaped cursor position within the square in screen-space (mouse right/down = positive), clamped to -1..1. Used purely for the visual indicator dot - it mirrors the physical mouse 1:1, independent of whatever sign flips/deadzone/curve get applied to the actual control values above.</summary>
+    public static (double X, double Y) RawNormalizedPosition(int cursorX, int cursorY, int squareLeft, int squareTop, int squareSize)
+    {
+        double halfSize = squareSize / 2.0;
+        double centerX = squareLeft + halfSize;
+        double centerY = squareTop + halfSize;
+        return (
+            Clamp((cursorX - centerX) / halfSize, -1.0, 1.0),
+            Clamp((cursorY - centerY) / halfSize, -1.0, 1.0));
+    }
 
     /// <summary>Steps the running throttle value by one notch's worth of percent of the full idle-to-max range, clamped to valid.</summary>
     public static int StepThrottle(int currentValue, int wheelDelta, int stepPercent)

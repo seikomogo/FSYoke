@@ -4,12 +4,17 @@ using System.Runtime.InteropServices;
 namespace MouseYoke.Native;
 
 /// <summary>
-/// Reports absolute cursor position and scroll-wheel deltas via a low-level mouse hook, so
-/// both keep working regardless of which window currently has focus (MSFS in particular).
-/// Mouse movement is always passed through untouched. Wheel events are passed through too,
-/// UNLESS <see cref="ConsumeWheelInput"/> is set - while the yoke is active, MSFS's own
-/// scroll-to-zoom binding would otherwise fire on every notch alongside the throttle change,
-/// so those notches are swallowed system-wide instead of forwarded.
+/// Reports absolute cursor position and scroll-wheel deltas (plus live Shift state) via a
+/// low-level mouse hook, so both keep working regardless of which window currently has focus
+/// (MSFS in particular). Mouse movement is always passed through untouched.
+///
+/// Wheel events are handed to <see cref="WheelScrolled"/>, which returns whether to swallow
+/// that notch system-wide. Note this swallowing only affects the classic Win32 message queue -
+/// modern DirectX games (MSFS included) typically read the wheel via Raw Input instead, which
+/// bypasses low-level hooks entirely and cannot be blocked this way. That's why App.xaml.cs
+/// requires a Shift modifier for throttle by default rather than relying on suppression: it
+/// sidesteps the conflict with MSFS's own scroll-to-zoom by using an input combination MSFS
+/// isn't already listening for, instead of trying (and mostly failing) to block the shared one.
 /// </summary>
 public sealed class MouseTracker : IDisposable
 {
@@ -49,17 +54,23 @@ public sealed class MouseTracker : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    private const int VK_SHIFT = 0x10;
+
     private readonly LowLevelMouseProc _proc;
     private IntPtr _hookHandle = IntPtr.Zero;
 
     /// <summary>Fires on every global mouse move with the cursor's screen-space physical-pixel position.</summary>
     public event Action<int, int>? MouseMoved;
 
-    /// <summary>Fires on every global wheel notch; positive = scroll up/away, negative = scroll down/toward, magnitude 120 per notch.</summary>
-    public event Action<int>? WheelScrolled;
-
-    /// <summary>When true, wheel notches are consumed (not forwarded to whatever app would normally receive them) after WheelScrolled fires.</summary>
-    public bool ConsumeWheelInput { get; set; }
+    /// <summary>
+    /// Fires on every global wheel notch with (delta, isShiftHeld); positive delta = scroll
+    /// up/away, negative = down/toward, magnitude 120 per notch. Return true to attempt to
+    /// swallow that notch from reaching any other app - see the suppression caveat above.
+    /// </summary>
+    public Func<int, bool, bool>? WheelScrolled { get; set; }
 
     public MouseTracker()
     {
@@ -96,11 +107,12 @@ public sealed class MouseTracker : IDisposable
             else if (wParam == WM_MOUSEWHEEL)
             {
                 short delta = (short)((data.mouseData >> 16) & 0xFFFF);
-                WheelScrolled?.Invoke(delta);
+                bool shiftHeld = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                bool suppress = WheelScrolled?.Invoke(delta, shiftHeld) ?? false;
 
-                if (ConsumeWheelInput)
+                if (suppress)
                 {
-                    return (IntPtr)1; // swallow: stop this notch from also reaching MSFS's (or anything else's) own scroll handling
+                    return (IntPtr)1;
                 }
             }
         }

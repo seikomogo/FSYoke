@@ -1,7 +1,7 @@
 <Window x:Class="MouseYoke.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MouseYoke Settings" Height="460" Width="380"
+        Title="MouseYoke Settings" Height="500" Width="380"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <StackPanel Margin="16">
         <TextBlock Text="Hotkey (toggles the yoke square on/off)" FontWeight="Bold" Margin="0,0,0,4"/>
@@ -39,6 +39,10 @@
                        Text="{Binding ElementName=ThrottleStepSlider, Path=Value, StringFormat={}{0:0}}"/>
             <Slider x:Name="ThrottleStepSlider" Minimum="1" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True"/>
         </DockPanel>
+
+        <CheckBox x:Name="ThrottleRequiresShiftCheck" Margin="0,8,0,0">
+            <TextBlock Text="Require Shift+Scroll for throttle (recommended - leaves plain scroll for MSFS's own FOV zoom etc.)" TextWrapping="Wrap" MaxWidth="320"/>
+        </CheckBox>
 
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
             <CheckBox x:Name="InvertAileronCheck" Content="Invert aileron" Margin="0,0,12,0"/>

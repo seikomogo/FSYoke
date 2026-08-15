@@ -11,7 +11,7 @@ public sealed class AppSettings
     public Key HotkeyKey { get; set; } = Key.Y;
 
     /// <summary>Side length of the yoke square, in physical screen pixels.</summary>
-    public int SquareSize { get; set; } = 260;
+    public int SquareSize { get; set; } = 160;
 
     /// <summary>Where the square's center sits on the primary monitor, as a 0..1 fraction of screen width/height.</summary>
     public double SquareCenterXRatio { get; set; } = 0.5;
@@ -28,6 +28,9 @@ public sealed class AppSettings
 
     /// <summary>Percent of full idle-to-max throttle travel applied per scroll-wheel notch.</summary>
     public int ThrottleStepPercent { get; set; } = 5;
+
+    /// <summary>If true, plain scroll is left alone for MSFS's own bindings (e.g. FOV zoom) and only Shift+Scroll drives throttle, avoiding the conflict entirely instead of trying (and mostly failing) to suppress it.</summary>
+    public bool ThrottleRequiresShift { get; set; } = true;
 
     public HotkeyCombo ToHotkeyCombo() => new()
     {

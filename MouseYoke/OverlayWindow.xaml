@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MouseYoke Overlay"
-        Width="260" Height="260"
+        Width="160" Height="160"
         Left="-10000" Top="-10000"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -14,8 +14,17 @@
         Focusable="False">
     <Grid>
         <Rectangle Stroke="#B0FFFFFF" StrokeThickness="1.5" Fill="#22FFFFFF" RadiusX="6" RadiusY="6" />
-        <Rectangle Width="1" Fill="#90FFFFFF" HorizontalAlignment="Center" />
-        <Rectangle Height="1" Fill="#90FFFFFF" VerticalAlignment="Center" />
-        <Ellipse Width="8" Height="8" Fill="#C0FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Rectangle Width="1" Fill="#60FFFFFF" HorizontalAlignment="Center" />
+        <Rectangle Height="1" Fill="#60FFFFFF" VerticalAlignment="Center" />
+        <!-- Static reference marker: true neutral (dead center). -->
+        <Ellipse Width="6" Height="6" Fill="#80FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <!-- Live indicator: tracks the cursor's actual position within the square in real time. -->
+        <Ellipse x:Name="Indicator" Width="16" Height="16" Fill="#FF3DDC97"
+                 Stroke="#FF1A1A1A" StrokeThickness="1"
+                 HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Ellipse.RenderTransform>
+                <TranslateTransform x:Name="IndicatorTransform" X="0" Y="0" />
+            </Ellipse.RenderTransform>
+        </Ellipse>
     </Grid>
 </Window>

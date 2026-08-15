@@ -30,4 +30,12 @@ public partial class OverlayWindow : Window
     }
 
     public void HideOverlay() => Hide();
+
+    /// <summary>Moves the live indicator dot to reflect the cursor's current raw position within the square (-1..1 per axis, screen-space).</summary>
+    public void UpdateIndicator(double normalizedX, double normalizedY, int squareSize)
+    {
+        double halfSize = squareSize / 2.0;
+        IndicatorTransform.X = halfSize * normalizedX;
+        IndicatorTransform.Y = halfSize * normalizedY;
+    }
 }

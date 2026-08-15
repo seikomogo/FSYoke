@@ -37,7 +37,7 @@ public partial class App : Application
 
         _mouseTracker = new MouseTracker();
         _mouseTracker.MouseMoved += OnMouseMoved;
-        _mouseTracker.WheelScrolled += OnWheelScrolled;
+        _mouseTracker.WheelScrolled = OnWheelScrolled;
         _mouseTracker.Start();
 
         _hotkeyListener = new GlobalHotkeyListener(_settings.ToHotkeyCombo());
@@ -53,7 +53,6 @@ public partial class App : Application
     {
         _isActive = !_isActive;
         _tray.SetActive(_isActive);
-        _mouseTracker.ConsumeWheelInput = _isActive;
 
         if (_isActive)
         {
@@ -86,14 +85,20 @@ public partial class App : Application
 
         _simConnect.SendAxis(ControlEvent.Aileron, output.Aileron);
         _simConnect.SendAxis(ControlEvent.Elevator, output.Elevator);
+
+        var (rawX, rawY) = AxisMapper.RawNormalizedPosition(x, y, _squareLeft, _squareTop, _settings.SquareSize);
+        _overlay.UpdateIndicator(rawX, rawY, _settings.SquareSize);
     }
 
-    private void OnWheelScrolled(int delta)
+    /// <summary>Returns true (swallow this notch) only when we actually acted on it, so plain scroll is always left alone for MSFS's own bindings (e.g. FOV zoom) - see MouseTracker's suppression caveat.</summary>
+    private bool OnWheelScrolled(int delta, bool shiftHeld)
     {
-        if (!_isActive) return;
+        if (!_isActive) return false;
+        if (_settings.ThrottleRequiresShift && !shiftHeld) return false;
 
         _throttleValue = AxisMapper.StepThrottle(_throttleValue, delta, _settings.ThrottleStepPercent);
         _simConnect.SendAxis(ControlEvent.Throttle, _throttleValue);
+        return true;
     }
 
     private void ShowSettings()
