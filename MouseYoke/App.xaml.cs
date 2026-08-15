@@ -3,6 +3,10 @@ using MouseYoke.Config;
 using MouseYoke.Native;
 using MouseYoke.Simulation;
 
+// UseWPF + UseWindowsForms both contribute a global "Application" type
+// (System.Windows.Application vs. System.Windows.Forms.Application) - disambiguate.
+using Application = System.Windows.Application;
+
 namespace MouseYoke;
 
 public partial class App : Application
